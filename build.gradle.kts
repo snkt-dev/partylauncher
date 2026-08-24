@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "org.snkt.partylauncher"
-version = "1.0.0"
+version = "1.1.0"
 
 repositories {
     google()
@@ -71,7 +71,7 @@ compose.desktop {
                 org.jetbrains.compose.desktop.application.dsl.TargetFormat.Deb
             )
             packageName = "BeachParty Launcher"
-            packageVersion = "1.0.0"
+            packageVersion = "1.1.0"
             description = "Лаунчер для нашего сервера BeachParty"
             vendor = "BeachParty Launcher"
 
