@@ -24,7 +24,7 @@ data class JavaInstallation(
 object JavaRuntime : JavaRuntimeProvider {
 
     /**
-     * Determines the minimum required Java major version based on the Minecraft version.
+     * Determines the minimum/target required Java major version based on the Minecraft version.
      */
     fun getRequiredJavaVersion(minecraftVersion: String): Int {
         val parts = minecraftVersion.split(".")
@@ -47,7 +47,7 @@ object JavaRuntime : JavaRuntimeProvider {
      */
     override suspend fun getRuntime(minecraftVersion: String, customPath: String?): Path {
         val requiredVersion = getRequiredJavaVersion(minecraftVersion)
-        AppLogger.info("JavaRuntime", "Resolving Java runtime for Minecraft $minecraftVersion (Requires Java $requiredVersion+)...")
+        AppLogger.info("JavaRuntime", "Resolving Java runtime for Minecraft $minecraftVersion (Requires Java $requiredVersion)...")
 
         // 1. Check custom path from settings if provided
         if (!customPath.isNullOrBlank()) {
@@ -65,15 +65,22 @@ object JavaRuntime : JavaRuntimeProvider {
 
         // 2. Discover available Java installations on the machine
         val candidates = discoverSystemJavaInstallations()
-        val searched = candidates.map { it.executablePath.toString() }
+        val searched = candidates.map { "${it.executablePath} (Java ${it.majorVersion})" }
 
-        // Find best match (highest version >= requiredVersion)
+        // Find exact match first (e.g. Java 21 for MC 1.21.x)
+        val exactMatch = candidates.find { it.majorVersion == requiredVersion }
+        if (exactMatch != null) {
+            AppLogger.info("JavaRuntime", "Selected exact matching Java ${exactMatch.majorVersion} at ${exactMatch.executablePath}")
+            return exactMatch.executablePath
+        }
+
+        // Otherwise find the closest version >= requiredVersion
         val matching = candidates
             .filter { it.majorVersion >= requiredVersion }
-            .maxByOrNull { it.majorVersion }
+            .minByOrNull { it.majorVersion }
 
         if (matching != null) {
-            AppLogger.info("JavaRuntime", "Selected Java ${matching.majorVersion} at ${matching.executablePath}")
+            AppLogger.info("JavaRuntime", "Selected compatible Java ${matching.majorVersion} at ${matching.executablePath}")
             return matching.executablePath
         }
 
@@ -113,8 +120,12 @@ object JavaRuntime : JavaRuntimeProvider {
             OSType.MACOS -> listOf(
                 Paths.get("/Library/Java/JavaVirtualMachines"),
                 Paths.get(System.getProperty("user.home"), "Library/Java/JavaVirtualMachines"),
-                Paths.get("/usr/local/opt/openjdk/bin"),
-                Paths.get("/opt/homebrew/opt/openjdk/bin")
+                Paths.get("/opt/homebrew/opt"),
+                Paths.get("/opt/homebrew/Cellar"),
+                Paths.get("/usr/local/opt"),
+                Paths.get("/usr/local/Cellar"),
+                Paths.get("/opt/homebrew/bin"),
+                Paths.get("/usr/local/bin")
             )
             OSType.WINDOWS -> listOf(
                 Paths.get("C:\\Program Files\\Java"),
@@ -126,27 +137,52 @@ object JavaRuntime : JavaRuntimeProvider {
             OSType.LINUX -> listOf(
                 Paths.get("/usr/lib/jvm"),
                 Paths.get("/usr/java"),
-                Paths.get("/opt/java")
+                Paths.get("/opt/java"),
+                Paths.get("/usr/bin")
             )
             else -> emptyList()
         }
 
         for (dir in pathsToScan) {
-            if (Files.exists(dir) && Files.isDirectory(dir)) {
-                try {
-                    Files.list(dir).use { stream ->
-                        stream.forEach { candidateDir ->
-                            val exec = resolveExecutable(candidateDir)
-                            inspectJavaExecutable(exec)?.let { list.add(it) }
-                        }
+            if (Files.exists(dir)) {
+                if (Files.isDirectory(dir)) {
+                    // Check direct executable
+                    val directExec = resolveExecutable(dir)
+                    if (directExec != dir) {
+                        inspectJavaExecutable(directExec)?.let { list.add(it) }
                     }
-                } catch (e: Exception) {
-                    // Ignore access errors
+
+                    try {
+                        Files.list(dir).use { stream ->
+                            stream.forEach { candidateDir ->
+                                if (Files.isDirectory(candidateDir)) {
+                                    val exec = resolveExecutable(candidateDir)
+                                    inspectJavaExecutable(exec)?.let { list.add(it) }
+
+                                    // For brew Cellar/openjdk@21/...
+                                    if (candidateDir.fileName.toString().contains("openjdk") || candidateDir.fileName.toString().contains("java")) {
+                                        try {
+                                            Files.list(candidateDir).use { subStream ->
+                                                subStream.forEach { subCandidate ->
+                                                    val subExec = resolveExecutable(subCandidate)
+                                                    inspectJavaExecutable(subExec)?.let { list.add(it) }
+                                                }
+                                            }
+                                        } catch (e: Exception) {
+                                            // Ignore
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        // Ignore access errors
+                    }
                 }
             }
         }
 
-        // Remove duplicates by executable path
+        // Remove duplicates by normalized executable path
         return list.distinctBy { it.executablePath.toAbsolutePath().normalize() }
     }
 
@@ -166,7 +202,11 @@ object JavaRuntime : JavaRuntimeProvider {
         val inMacHome = homeOrBin.resolve("Contents/Home/bin").resolve(execName)
         if (Files.exists(inMacHome)) return inMacHome
 
-        // Case 3: directly in directory
+        // Case 3: libexec/openjdk.jdk/Contents/Home/bin/java (Homebrew Cellar)
+        val inBrewHome = homeOrBin.resolve("libexec/openjdk.jdk/Contents/Home/bin").resolve(execName)
+        if (Files.exists(inBrewHome)) return inBrewHome
+
+        // Case 4: directly in directory
         val direct = homeOrBin.resolve(execName)
         if (Files.exists(direct)) return direct
 

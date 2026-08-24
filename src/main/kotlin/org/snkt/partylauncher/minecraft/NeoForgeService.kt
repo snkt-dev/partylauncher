@@ -21,7 +21,8 @@ import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 
 class NeoForgeService(
-    private val httpClient: HttpClient
+    private val httpClient: HttpClient,
+    private val minecraftDir: Path = OSUtils.getMinecraftCacheDir()
 ) {
     private val json = Json {
         ignoreUnknownKeys = true
@@ -35,18 +36,19 @@ class NeoForgeService(
         onProgress: (ProgressInfo) -> Unit
     ): Result<NeoForgeProfile> = withContext(Dispatchers.IO) {
         try {
-            val mcDir = OSUtils.getMinecraftCacheDir()
             val versionId = "neoforge-$loaderVersion"
-            val versionDir = OSUtils.getVersionsDir().resolve(versionId)
-            val versionJsonPath = versionDir.resolve("$versionId.json")
+            val versionsDir = minecraftDir.resolve("versions").resolve(versionId)
+            val versionJsonPath = versionsDir.resolve("$versionId.json")
 
-            // Check if NeoForge is already installed and valid
+            // Check if NeoForge is already installed and valid (must have libraries)
             if (Files.exists(versionJsonPath)) {
                 try {
                     val content = Files.readString(versionJsonPath)
                     val details = json.decodeFromString<MojangVersionDetails>(content)
-                    AppLogger.info("NeoForgeService", "Found existing valid NeoForge profile for $versionId")
-                    return@withContext Result.success(parseNeoForgeProfile(details))
+                    if (details.libraries.isNotEmpty() && details.mainClass.isNotBlank()) {
+                        AppLogger.info("NeoForgeService", "Found existing valid NeoForge profile for $versionId")
+                        return@withContext Result.success(parseNeoForgeProfile(details))
+                    }
                 } catch (e: Exception) {
                     AppLogger.warn("NeoForgeService", "Corrupted NeoForge version JSON, will reinstall: ${e.message}")
                 }
@@ -70,22 +72,23 @@ class NeoForgeService(
                 Files.move(tempPath, installerJarPath, StandardCopyOption.REPLACE_EXISTING)
             }
 
-            // 2. Ensure launcher_profiles.json exists in mcDir
-            val launcherProfilesPath = mcDir.resolve("launcher_profiles.json")
+            // 2. Ensure launcher_profiles.json exists in minecraftDir
+            val launcherProfilesPath = minecraftDir.resolve("launcher_profiles.json")
             if (!Files.exists(launcherProfilesPath)) {
+                Files.createDirectories(minecraftDir)
                 Files.writeString(launcherProfilesPath, "{\"profiles\":{}}")
             }
 
             // 3. Run client installation
             onProgress(ProgressInfo(title = "Установка компонентов NeoForge $loaderVersion...", currentItem = 3, totalItems = 5))
-            AppLogger.info("NeoForgeService", "Running NeoForge installer into $mcDir using $javaExecutable")
+            AppLogger.info("NeoForgeService", "Running NeoForge installer into $minecraftDir using $javaExecutable")
 
             val processBuilder = ProcessBuilder(
                 javaExecutable.toAbsolutePath().toString(),
                 "-jar",
                 installerJarPath.toAbsolutePath().toString(),
                 "--installClient",
-                mcDir.toAbsolutePath().toString()
+                minecraftDir.toAbsolutePath().toString()
             ).redirectErrorStream(true)
 
             val process = processBuilder.start()

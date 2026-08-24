@@ -68,12 +68,19 @@ class MinecraftLauncher(
 
         // 5. Classpath
         val classpathEntries = mutableListOf<String>()
+        val seenPaths = mutableSetOf<String>()
+
         installation.libraryJars.forEach {
-            if (Files.exists(it)) {
-                classpathEntries.add(it.toAbsolutePath().toString())
+            val normPath = it.toAbsolutePath().normalize().toString()
+            if (seenPaths.add(normPath) && Files.exists(it)) {
+                classpathEntries.add(normPath)
             }
         }
-        classpathEntries.add(installation.clientJar.toAbsolutePath().toString())
+
+        val clientJarNorm = installation.clientJar.toAbsolutePath().normalize().toString()
+        if (seenPaths.add(clientJarNorm) && Files.exists(installation.clientJar)) {
+            classpathEntries.add(clientJarNorm)
+        }
 
         val classpathString = classpathEntries.joinToString(File.pathSeparator)
         command.add("-cp")

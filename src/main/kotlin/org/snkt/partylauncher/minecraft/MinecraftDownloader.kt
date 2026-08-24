@@ -352,7 +352,7 @@ class MinecraftDownloader(
             }.awaitAll()
         }
 
-        resolvedPaths
+        resolvedPaths.distinctBy { it.toAbsolutePath().normalize() }
     }
 
     private fun isLibraryValid(path: Path, expectedSha1: String?): Boolean {

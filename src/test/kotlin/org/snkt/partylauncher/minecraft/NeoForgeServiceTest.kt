@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
-import org.snkt.partylauncher.util.OSUtils
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -14,10 +13,13 @@ class NeoForgeServiceTest {
 
     @Test
     fun testParseExistingNeoForgeVersionJson(@TempDir tempDir: Path) = runBlocking {
-        val service = NeoForgeService(HttpClient())
+        val service = NeoForgeService(
+            httpClient = HttpClient(),
+            minecraftDir = tempDir
+        )
 
         val versionId = "neoforge-21.1.248"
-        val versionsDir = OSUtils.getVersionsDir().resolve(versionId)
+        val versionsDir = tempDir.resolve("versions").resolve(versionId)
         Files.createDirectories(versionsDir)
         val jsonFile = versionsDir.resolve("$versionId.json")
 
