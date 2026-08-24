@@ -510,19 +510,19 @@ private fun StatusBanner(
             SurfaceCard,
             PrimaryGreen.copy(alpha = 0.5f),
             Icons.Default.SportsEsports,
-            "Minecraft запущен и активен. Приятной игры!"
+            "Minecraft запущен."
         )
         needsUpdate -> Quadruple(
             AccentCyan.copy(alpha = 0.12f),
             AccentCyan.copy(alpha = 0.4f),
             Icons.Default.SystemUpdate,
-            "Доступно обновление сборки: v${remoteVersion ?: "?"} (Установлена: v${installedVersion ?: "нет"})"
+            "Доступно обновление сборки: ${remoteVersion ?: "?"}. Текущая версия: ${installedVersion ?: "Отсутствует"})"
         )
         else -> Quadruple(
             SurfaceCard,
             BorderDark,
             Icons.Default.CheckCircle,
-            "Сборка актуальна (v${installedVersion ?: "1.0.0"}). Готово к запуску!"
+            "Сборка актуальна (${installedVersion ?: "1.0.0"})."
         )
     }
 

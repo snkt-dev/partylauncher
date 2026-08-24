@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "org.snkt.partylauncher"
-version = "1.1.0"
+version = "1.1.1"
 
 repositories {
     google()
@@ -70,10 +70,10 @@ compose.desktop {
                 org.jetbrains.compose.desktop.application.dsl.TargetFormat.Msi,
                 org.jetbrains.compose.desktop.application.dsl.TargetFormat.Deb
             )
-            packageName = "BeachParty Launcher"
-            packageVersion = "1.1.0"
-            description = "Лаунчер для нашего сервера BeachParty"
-            vendor = "BeachParty Launcher"
+            packageName = "Party Launcher"
+            packageVersion = "1.1.1"
+            description = "Лаунчер для сервера BeachParty"
+            vendor = "Party Launcher"
 
             macOS {
                 iconFile.set(project.file("src/main/resources/icon.icns"))

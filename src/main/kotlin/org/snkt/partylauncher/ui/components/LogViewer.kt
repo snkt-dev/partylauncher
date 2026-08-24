@@ -97,7 +97,7 @@ fun LogViewer(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Консоль логов (${logs.size})",
+                    text = "Консоль (${logs.size})",
                     style = MaterialTheme.typography.titleMedium,
                     color = TextPrimary
                 )

@@ -101,19 +101,11 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "BeachParty Launcher",
+                    text = "Party Launcher",
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Bold,
                     color = TextPrimary
                 )
-
-                Text(
-                    text = "Лаунчер для сервера Minecraft",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextSecondary,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-
                 Spacer(modifier = Modifier.height(24.dp))
 
                 if (deviceCode == null && appState != AppState.CHECKING_AUTH) {
@@ -172,7 +164,7 @@ fun LoginScreen(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "Офлайн режим",
+                                    text = "Оффлайн режим",
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal,
                                     color = if (selectedTab == 1) TextPrimary else TextMuted
@@ -325,17 +317,11 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    Text(
-                        text = "Безопасная авторизация через OAuth 2.0.\nПароли не передаются и не сохраняются лаунчером.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextMuted,
-                        textAlign = TextAlign.Center
-                    )
                 } else {
                     // Offline Login Tab Content
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            text = "Игровой никнейм",
+                            text = "Никнейм",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium,
                             color = TextPrimary
@@ -360,7 +346,7 @@ fun LoginScreen(
                                 if (offlineValidationError != null) {
                                     Text(offlineValidationError!!, color = MaterialTheme.colorScheme.error)
                                 } else {
-                                    Text("От 3 до 16 символов (латиница, цифры, _)", color = TextMuted)
+                                    Text("От 3 до 16 символов: латиница, цифры, _", color = TextMuted)
                                 }
                             },
                             colors = OutlinedTextFieldDefaults.colors(
@@ -402,7 +388,7 @@ fun LoginScreen(
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Text(
-                            text = "Офлайн режим работает без интернета и не требует лицензии Microsoft.",
+                            text = "Оффлайн режим работает без интернета и не требует лицензии Microsoft.",
                             style = MaterialTheme.typography.bodySmall,
                             color = TextMuted,
                             textAlign = TextAlign.Center,
