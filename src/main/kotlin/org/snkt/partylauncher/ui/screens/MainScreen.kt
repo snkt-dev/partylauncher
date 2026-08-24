@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -21,6 +22,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.NetworkCheck
+import androidx.compose.material.icons.filled.Paid
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
@@ -58,6 +60,8 @@ import org.snkt.partylauncher.ui.components.UserProfileBadge
 import org.snkt.partylauncher.ui.theme.AccentCyan
 import org.snkt.partylauncher.ui.theme.BackgroundDark
 import org.snkt.partylauncher.ui.theme.BorderDark
+import org.snkt.partylauncher.ui.theme.GoldAccent
+import org.snkt.partylauncher.ui.theme.GoldDarkText
 import org.snkt.partylauncher.ui.theme.PrimaryGreen
 import org.snkt.partylauncher.ui.theme.StatusError
 import org.snkt.partylauncher.ui.theme.StatusSuccess
@@ -66,6 +70,8 @@ import org.snkt.partylauncher.ui.theme.SurfaceCard
 import org.snkt.partylauncher.ui.theme.TextMuted
 import org.snkt.partylauncher.ui.theme.TextPrimary
 import org.snkt.partylauncher.ui.theme.TextSecondary
+import java.awt.Desktop
+import java.net.URI
 
 @Composable
 fun MainScreen(
@@ -133,7 +139,44 @@ fun MainScreen(
                     onLogout = onLogout
                 )
 
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(10.dp))
+
+                // Golden "Поддержать" button
+                Button(
+                    onClick = {
+                        if (config.donationUrl.isNotBlank()) {
+                            try {
+                                if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                                    Desktop.getDesktop().browse(URI(config.donationUrl))
+                                }
+                            } catch (e: Exception) {
+                                // Ignore
+                            }
+                        }
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = GoldAccent
+                    ),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
+                    modifier = Modifier.height(44.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Paid,
+                        contentDescription = "Поддержать",
+                        tint = GoldDarkText,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Поддержать",
+                        color = GoldDarkText,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(10.dp))
 
                 IconButton(
                     onClick = onCheckUpdates,

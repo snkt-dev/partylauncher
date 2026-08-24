@@ -19,5 +19,6 @@ data class LauncherConfig(
     val playtimeSecondsByUuid: Map<String, Long> = emptyMap(),
     val firestoreProjectId: String = "beachparty-mc",
     val firestoreNewsCollection: String = "news",
-    val customNewsUrl: String? = null
+    val customNewsUrl: String? = null,
+    val donationUrl: String = "https://example.com/donate"
 )

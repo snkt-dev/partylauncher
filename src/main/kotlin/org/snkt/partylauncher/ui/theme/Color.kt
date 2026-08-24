@@ -17,6 +17,10 @@ val AccentCyanDark = Color(0xFF0E7490)
 
 val AccentPurple = Color(0xFF8B5CF6)
 
+val GoldAccent = Color(0xFFFFC107)
+val GoldAccentHover = Color(0xFFFFB300)
+val GoldDarkText = Color(0xFF201600)
+
 val TextPrimary = Color(0xFFF3F4F6)
 val TextSecondary = Color(0xFF9CA3AF)
 val TextMuted = Color(0xFF6B7280)

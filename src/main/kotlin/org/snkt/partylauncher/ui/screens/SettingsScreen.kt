@@ -15,13 +15,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Memory
-import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -46,7 +46,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import org.snkt.partylauncher.config.LauncherConfig
-import org.snkt.partylauncher.ui.theme.AccentCyan
 import org.snkt.partylauncher.ui.theme.BackgroundDark
 import org.snkt.partylauncher.ui.theme.BorderDark
 import org.snkt.partylauncher.ui.theme.PrimaryGreen
@@ -62,21 +61,15 @@ fun SettingsScreen(
     onSave: (LauncherConfig) -> Unit,
     onClose: () -> Unit
 ) {
-    var serverUrl by remember { mutableStateOf(currentConfig.buildServerUrl) }
-    var serverAddress by remember { mutableStateOf(currentConfig.serverAddress) }
-    var serverName by remember { mutableStateOf(currentConfig.serverName) }
-    var instanceName by remember { mutableStateOf(currentConfig.instanceName) }
     var customJavaPath by remember { mutableStateOf(currentConfig.customJavaPath ?: "") }
     var maxMemoryGb by remember { mutableFloatStateOf((currentConfig.maxMemoryMb / 1024f).coerceIn(1f, 16f)) }
-    var minMemoryGb by remember { mutableFloatStateOf((currentConfig.minMemoryMb / 1024f).coerceIn(1f, 8f)) }
-    var firestoreProjectId by remember { mutableStateOf(currentConfig.firestoreProjectId) }
-    var firestoreNewsCollection by remember { mutableStateOf(currentConfig.firestoreNewsCollection) }
-    var customNewsUrl by remember { mutableStateOf(currentConfig.customNewsUrl ?: "") }
+    var autoCheckUpdates by remember { mutableStateOf(currentConfig.autoCheckUpdates) }
+    var closeOnLaunch by remember { mutableStateOf(currentConfig.closeOnLaunch) }
 
     Dialog(onDismissRequest = onClose) {
         Surface(
             modifier = Modifier
-                .width(600.dp)
+                .width(540.dp)
                 .clip(RoundedCornerShape(20.dp))
                 .border(1.dp, BorderDark, RoundedCornerShape(20.dp)),
             color = SurfaceCard
@@ -119,127 +112,6 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Server Address (IP:Port)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Dns, contentDescription = null, tint = PrimaryGreen, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Адрес игрового сервера (IP / Host)",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = TextPrimary
-                    )
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Используется для мониторинга онлайна, пинга и добавления в список серверов игры",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextMuted
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                OutlinedTextField(
-                    value = serverAddress,
-                    onValueChange = { serverAddress = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("например: play.example.com или 127.0.0.1:25565", color = TextMuted) },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PrimaryGreen,
-                        unfocusedBorderColor = BorderDark
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Server Display Name
-                Text(
-                    text = "Название сервера в мультиплеере",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = TextPrimary
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                OutlinedTextField(
-                    value = serverName,
-                    onValueChange = { serverName = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Party Minecraft Server", color = TextMuted) },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PrimaryGreen,
-                        unfocusedBorderColor = BorderDark
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Firebase Firestore News Section
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Newspaper, contentDescription = null, tint = AccentCyan, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Firebase Firestore (Новости)",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = TextPrimary
-                    )
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "ID проекта Firebase и коллекция для подгрузки новостей",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextMuted
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = firestoreProjectId,
-                        onValueChange = { firestoreProjectId = it },
-                        modifier = Modifier.weight(1.2f),
-                        label = { Text("Project ID", fontSize = 12.sp) },
-                        placeholder = { Text("beachparty-mc", color = TextMuted) },
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = AccentCyan,
-                            unfocusedBorderColor = BorderDark
-                        )
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    OutlinedTextField(
-                        value = firestoreNewsCollection,
-                        onValueChange = { firestoreNewsCollection = it },
-                        modifier = Modifier.weight(1f),
-                        label = { Text("Коллекция", fontSize = 12.sp) },
-                        placeholder = { Text("news", color = TextMuted) },
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = AccentCyan,
-                            unfocusedBorderColor = BorderDark
-                        )
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Build Server URL
-                Text(
-                    text = "URL сервера обновлений сборки",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = TextPrimary
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                OutlinedTextField(
-                    value = serverUrl,
-                    onValueChange = { serverUrl = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("https://example.com/minecraft", color = TextMuted) },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PrimaryGreen,
-                        unfocusedBorderColor = BorderDark
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
                 // RAM Allocation
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Memory, contentDescription = null, tint = PrimaryGreen, modifier = Modifier.size(18.dp))
@@ -250,6 +122,13 @@ fun SettingsScreen(
                         color = TextPrimary
                     )
                 }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Рекомендуется 4–8 GB для плавной игры с модами и шейдерами",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextMuted
+                )
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Slider(
                     value = maxMemoryGb,
@@ -273,7 +152,7 @@ fun SettingsScreen(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Оставьте пустым для автоопределения установленной Java в системе",
+                    text = "Оставьте пустым для автоматического выбора установленной Java 21+",
                     style = MaterialTheme.typography.bodySmall,
                     color = TextMuted
                 )
@@ -289,6 +168,43 @@ fun SettingsScreen(
                         unfocusedBorderColor = BorderDark
                     )
                 )
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                // Checkboxes for preferences
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        checked = autoCheckUpdates,
+                        onCheckedChange = { autoCheckUpdates = it },
+                        colors = CheckboxDefaults.colors(checkedColor = PrimaryGreen)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Автоматически проверять обновления сборки при запуске",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextPrimary
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        checked = closeOnLaunch,
+                        onCheckedChange = { closeOnLaunch = it },
+                        colors = CheckboxDefaults.colors(checkedColor = PrimaryGreen)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Закрывать лаунчер при запуске игры",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextPrimary
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -309,16 +225,11 @@ fun SettingsScreen(
                     Button(
                         onClick = {
                             val newConfig = currentConfig.copy(
-                                serverAddress = serverAddress.trim().ifBlank { "127.0.0.1:25565" },
-                                serverName = serverName.trim().ifBlank { "Party Minecraft Server" },
-                                firestoreProjectId = firestoreProjectId.trim().ifBlank { "beachparty-mc" },
-                                firestoreNewsCollection = firestoreNewsCollection.trim().ifBlank { "news" },
-                                customNewsUrl = customNewsUrl.trim().ifBlank { null },
-                                buildServerUrl = serverUrl.trim(),
-                                instanceName = instanceName.trim().ifBlank { "Minecraft Server" },
                                 customJavaPath = customJavaPath.trim().ifBlank { null },
-                                minMemoryMb = (minMemoryGb * 1024).roundToInt(),
-                                maxMemoryMb = (maxMemoryGb * 1024).roundToInt()
+                                minMemoryMb = 1024,
+                                maxMemoryMb = (maxMemoryGb * 1024).roundToInt(),
+                                autoCheckUpdates = autoCheckUpdates,
+                                closeOnLaunch = closeOnLaunch
                             )
                             onSave(newConfig)
                         },

@@ -63,13 +63,6 @@ dependencies {
 compose.desktop {
     application {
         mainClass = "org.snkt.partylauncher.MainKt"
-        jvmArgs += listOf(
-            "-Dawt.useSystemAAFontSettings=lcd",
-            "-Dswing.aatext=true",
-            "-Dsun.java2d.dpiaware=true",
-            "-Dsun.java2d.uiScale.enabled=true",
-            "-Dskiko.vsync=true"
-        )
 
         nativeDistributions {
             targetFormats(
