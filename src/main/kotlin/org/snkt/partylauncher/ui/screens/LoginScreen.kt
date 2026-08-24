@@ -2,6 +2,7 @@ package org.snkt.partylauncher.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,18 +16,28 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.OpenInBrowser
-import androidx.compose.material.icons.filled.SportsEsports
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.snkt.partylauncher.auth.models.DeviceCodeResponse
 import org.snkt.partylauncher.core.AppState
+import org.snkt.partylauncher.ui.components.AppLogo
 import org.snkt.partylauncher.ui.theme.AccentCyan
 import org.snkt.partylauncher.ui.theme.BackgroundDark
 import org.snkt.partylauncher.ui.theme.BorderDark
@@ -57,9 +69,13 @@ fun LoginScreen(
     deviceCode: DeviceCodeResponse?,
     remainingSeconds: Long,
     onLoginClick: () -> Unit,
+    onOfflineLogin: (username: String) -> Unit,
     onCancelClick: () -> Unit
 ) {
     val clipboardManager = LocalClipboardManager.current
+    var selectedTab by remember { mutableIntStateOf(if (deviceCode != null) 0 else 0) }
+    var offlineUsername by remember { mutableStateOf("") }
+    var offlineValidationError by remember { mutableStateOf<String?>(null) }
 
     Box(
         modifier = Modifier
@@ -80,25 +96,93 @@ fun LoginScreen(
                 verticalArrangement = Arrangement.Center
             ) {
                 // Logo / Icon
-                org.snkt.partylauncher.ui.components.AppLogo(size = 64.dp, cornerRadius = 16.dp)
+                AppLogo(size = 64.dp, cornerRadius = 16.dp)
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "Minecraft Launcher",
+                    text = "BeachParty Launcher",
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Bold,
                     color = TextPrimary
                 )
 
                 Text(
-                    text = "Официальная авторизация Microsoft",
+                    text = "Лаунчер для сервера Minecraft",
                     style = MaterialTheme.typography.bodyMedium,
                     color = TextSecondary,
                     modifier = Modifier.padding(top = 4.dp)
                 )
 
-                Spacer(modifier = Modifier.height(28.dp))
+                Spacer(modifier = Modifier.height(24.dp))
+
+                if (deviceCode == null && appState != AppState.CHECKING_AUTH) {
+                    // Tab Selector (Microsoft vs Offline)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(BackgroundDark)
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        // Microsoft Tab
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (selectedTab == 0) SurfaceCard else BackgroundDark)
+                                .clickable { selectedTab = 0 }
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Language,
+                                    contentDescription = null,
+                                    tint = if (selectedTab == 0) PrimaryGreen else TextMuted,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Microsoft",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (selectedTab == 0) TextPrimary else TextMuted
+                                )
+                            }
+                        }
+
+                        // Offline Mode Tab
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (selectedTab == 1) SurfaceCard else BackgroundDark)
+                                .clickable { selectedTab = 1 }
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = if (selectedTab == 1) PrimaryGreen else TextMuted,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Офлайн режим",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (selectedTab == 1) TextPrimary else TextMuted
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+                }
 
                 if (deviceCode != null) {
                     // Device Code View
@@ -217,8 +301,8 @@ fun LoginScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextSecondary
                     )
-                } else {
-                    // Login Button
+                } else if (selectedTab == 0) {
+                    // Microsoft Login Tab Content
                     Button(
                         onClick = onLoginClick,
                         modifier = Modifier
@@ -229,6 +313,8 @@ fun LoginScreen(
                             containerColor = PrimaryGreen
                         )
                     ) {
+                        Icon(Icons.Default.Language, contentDescription = null, tint = BackgroundDark, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Войти через Microsoft",
                             style = MaterialTheme.typography.titleMedium,
@@ -245,6 +331,84 @@ fun LoginScreen(
                         color = TextMuted,
                         textAlign = TextAlign.Center
                     )
+                } else {
+                    // Offline Login Tab Content
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "Игровой никнейм",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = TextPrimary
+                        )
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        OutlinedTextField(
+                            value = offlineUsername,
+                            onValueChange = {
+                                offlineUsername = it
+                                offlineValidationError = null
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text("например: Alex или Steve", color = TextMuted) },
+                            singleLine = true,
+                            leadingIcon = {
+                                Icon(Icons.Default.AccountCircle, contentDescription = null, tint = PrimaryGreen)
+                            },
+                            isError = offlineValidationError != null,
+                            supportingText = {
+                                if (offlineValidationError != null) {
+                                    Text(offlineValidationError!!, color = MaterialTheme.colorScheme.error)
+                                } else {
+                                    Text("От 3 до 16 символов (латиница, цифры, _)", color = TextMuted)
+                                }
+                            },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = PrimaryGreen,
+                                unfocusedBorderColor = BorderDark
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Button(
+                            onClick = {
+                                val trimmed = offlineUsername.trim()
+                                val regex = Regex("^[a-zA-Z0-9_]{3,16}$")
+                                if (!regex.matches(trimmed)) {
+                                    offlineValidationError = "Никнейм должен быть от 3 до 16 символов (a-z, 0-9, _)"
+                                } else {
+                                    onOfflineLogin(trimmed)
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = PrimaryGreen
+                            )
+                        ) {
+                            Icon(Icons.Default.PlayArrow, contentDescription = null, tint = BackgroundDark, modifier = Modifier.size(22.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Играть офлайн",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = BackgroundDark
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text(
+                            text = "Офлайн режим работает без интернета и не требует лицензии Microsoft.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextMuted,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
         }

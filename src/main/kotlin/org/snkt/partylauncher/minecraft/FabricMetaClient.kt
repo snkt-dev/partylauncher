@@ -14,6 +14,8 @@ import kotlinx.serialization.json.Json
 import org.snkt.partylauncher.core.LauncherError
 import org.snkt.partylauncher.logging.AppLogger
 import org.snkt.partylauncher.minecraft.models.FabricProfile
+import org.snkt.partylauncher.util.OSUtils
+import java.nio.file.Files
 
 class FabricMetaClient(
     private val httpClient: HttpClient = HttpClient(CIO) {
@@ -35,9 +37,26 @@ class FabricMetaClient(
     }
 
     /**
-     * Fetches the Fabric profile JSON for a specific Minecraft version and Fabric loader version.
+     * Fetches the Fabric profile JSON for a specific Minecraft version and Fabric loader version,
+     * caching it locally for offline support.
      */
     suspend fun fetchFabricProfile(gameVersion: String, loaderVersion: String): Result<FabricProfile> = withContext(Dispatchers.IO) {
+        val versionsDir = OSUtils.getVersionsDir().resolve(gameVersion)
+        Files.createDirectories(versionsDir)
+        val cachedProfileFile = versionsDir.resolve("fabric-$loaderVersion.json")
+
+        // 1. Return cached profile if available and offline/valid
+        if (Files.exists(cachedProfileFile)) {
+            try {
+                val content = Files.readString(cachedProfileFile)
+                val profile = json.decodeFromString<FabricProfile>(content)
+                AppLogger.info("FabricMeta", "Using cached Fabric profile for MC $gameVersion (Loader $loaderVersion)")
+                return@withContext Result.success(profile)
+            } catch (e: Exception) {
+                AppLogger.warn("FabricMeta", "Failed to parse cached Fabric profile, re-fetching...")
+            }
+        }
+
         val url = "https://meta.fabricmc.net/v2/versions/loader/$gameVersion/$loaderVersion/profile/json"
         AppLogger.info("FabricMeta", "Fetching Fabric profile for MC $gameVersion (Loader $loaderVersion) from $url")
 
@@ -52,6 +71,7 @@ class FabricMetaClient(
             }
 
             val body = response.bodyAsText()
+            Files.writeString(cachedProfileFile, body)
             val profile = json.decodeFromString<FabricProfile>(body)
             AppLogger.info("FabricMeta", "Fabric profile loaded with ${profile.libraries.size} libraries. Main class: ${profile.mainClass}")
             Result.success(profile)

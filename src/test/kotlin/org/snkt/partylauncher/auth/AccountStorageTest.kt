@@ -43,4 +43,27 @@ class AccountStorageTest {
         assertFalse(storage.hasAccount())
         assertNull(storage.loadAccount())
     }
+
+    @Test
+    fun testOfflineSessionCreationAndStorage(@TempDir tempDir: Path) {
+        val storage = EncryptedFileAccountStorage(tempDir)
+
+        val offlineSession = MinecraftSession.createOffline("Alex")
+        assertTrue(offlineSession.isOffline)
+        assertEquals("Alex", offlineSession.username)
+        assertEquals("0", offlineSession.minecraftAccessToken)
+        assertFalse(offlineSession.isExpired())
+
+        // Verify deterministic UUID for offline player (Mojang standard)
+        val expectedUuid = java.util.UUID.nameUUIDFromBytes("OfflinePlayer:Alex".toByteArray(Charsets.UTF_8)).toString()
+        assertEquals(expectedUuid, offlineSession.uuid)
+
+        storage.saveAccount(offlineSession)
+        val loaded = storage.loadAccount()
+        assertNotNull(loaded)
+        assertTrue(loaded!!.isOffline)
+        assertEquals("Alex", loaded.username)
+        assertEquals(expectedUuid, loaded.uuid)
+        assertFalse(loaded.isExpired())
+    }
 }

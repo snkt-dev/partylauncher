@@ -35,6 +35,7 @@ fun App(viewModel: LauncherViewModel = remember { LauncherViewModel() }) {
                 deviceCode = deviceCode,
                 remainingSeconds = deviceCodeRemainingSeconds,
                 onLoginClick = { viewModel.startMicrosoftLogin() },
+                onOfflineLogin = { viewModel.loginOffline(it) },
                 onCancelClick = { viewModel.cancelLogin() }
             )
         } else {

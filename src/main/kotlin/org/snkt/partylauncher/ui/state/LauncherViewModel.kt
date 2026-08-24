@@ -211,6 +211,24 @@ class LauncherViewModel(
         _appState.value = AppState.REQUIRES_LOGIN
     }
 
+    fun loginOffline(username: String) {
+        activeJob?.cancel()
+        val cleanName = username.trim()
+        val nicknameRegex = Regex("^[a-zA-Z0-9_]{3,16}$")
+        if (!nicknameRegex.matches(cleanName)) {
+            showError(LauncherError.AuthenticationFailed("Никнейм должен быть от 3 до 16 символов (только латиница, цифры и _)"))
+            return
+        }
+
+        _currentError.value = null
+        _deviceCode.value = null
+        val session = MinecraftSession.createOffline(cleanName)
+        _session.value = session
+        accountStorage.saveAccount(session)
+        onUserAuthenticated(session)
+        AppLogger.info("LauncherViewModel", "Logged in using Offline mode as '$cleanName' (UUID: ${session.formattedUuid})")
+    }
+
     fun logout() {
         scope.launch {
             accountStorage.removeAccount()
