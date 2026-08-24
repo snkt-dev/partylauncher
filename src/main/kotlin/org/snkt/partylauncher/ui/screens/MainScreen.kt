@@ -125,11 +125,6 @@ fun MainScreen(
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary
                     )
-                    Text(
-                        text = "Лаунчер для сервера Minecraft",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextMuted
-                    )
                 }
             }
 
