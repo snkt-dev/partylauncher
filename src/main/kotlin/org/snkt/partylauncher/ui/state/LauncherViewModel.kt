@@ -102,7 +102,9 @@ class LauncherViewModel(
     private val _isNewsLoading = MutableStateFlow(false)
     val isNewsLoading: StateFlow<Boolean> = _isNewsLoading.asStateFlow()
 
+    private var activeGameProcess: Process? = null
     private var activeJob: Job? = null
+    private var updateCheckJob: Job? = null
     private var serverPingJob: Job? = null
     private var newsJob: Job? = null
 
@@ -288,15 +290,30 @@ class LauncherViewModel(
     }
 
     fun checkUpdates() {
-        activeJob?.cancel()
-        activeJob = scope.launch {
+        if (_appState.value == AppState.RUNNING || (activeGameProcess != null && activeGameProcess!!.isAlive)) {
+            // When game is running, silently check manifest in background without changing appState
+            updateCheckJob?.cancel()
+            updateCheckJob = scope.launch {
+                val manifestResult = buildRepository.fetchManifest(_config.value.buildServerUrl)
+                if (manifestResult.isSuccess) {
+                    val remote = manifestResult.getOrThrow()
+                    _remoteManifest.value = remote
+                }
+            }
+            return
+        }
+
+        updateCheckJob?.cancel()
+        updateCheckJob = scope.launch {
             _appState.value = AppState.CHECKING_BUILD
             _progress.value = ProgressInfo(title = "Проверка обновлений сборки...")
 
             val manifestResult = buildRepository.fetchManifest(_config.value.buildServerUrl)
             if (manifestResult.isFailure) {
                 AppLogger.warn("LauncherViewModel", "Could not fetch remote manifest: ${manifestResult.exceptionOrNull()?.message}")
-                _appState.value = AppState.READY
+                if (_appState.value != AppState.RUNNING) {
+                    _appState.value = AppState.READY
+                }
                 return@launch
             }
 
@@ -309,11 +326,18 @@ class LauncherViewModel(
             } else {
                 AppLogger.info("LauncherViewModel", "Build is up to date (${installed.buildVersion})")
             }
-            _appState.value = AppState.READY
+            if (_appState.value != AppState.RUNNING) {
+                _appState.value = AppState.READY
+            }
         }
     }
 
     fun playOrUpdate() {
+        if (_appState.value == AppState.RUNNING || (activeGameProcess != null && activeGameProcess!!.isAlive)) {
+            AppLogger.warn("LauncherViewModel", "Game is already running. Cannot start another instance.")
+            return
+        }
+
         val manifest = _remoteManifest.value
         val installed = _installedInstanceConfig.value
 
@@ -374,6 +398,11 @@ class LauncherViewModel(
     }
 
     private fun launchGame() {
+        if (_appState.value == AppState.RUNNING || (activeGameProcess != null && activeGameProcess!!.isAlive)) {
+            AppLogger.warn("LauncherViewModel", "Game is already running. Cannot start another instance.")
+            return
+        }
+
         val session = _session.value ?: run {
             _appState.value = AppState.REQUIRES_LOGIN
             return
@@ -441,6 +470,7 @@ class LauncherViewModel(
                     config = _config.value,
                     scope = scope,
                     onProcessExit = { exitCode ->
+                        activeGameProcess = null
                         playtimeJob.cancel()
                         val now = System.currentTimeMillis()
                         val finalElapsedSec = (now - lastSavedTime) / 1000
@@ -459,16 +489,39 @@ class LauncherViewModel(
                 )
 
                 if (launchRes.isFailure) {
+                    activeGameProcess = null
                     playtimeJob.cancel()
                     throw launchRes.exceptionOrNull() ?: Exception("Failed to spawn process")
                 }
 
+                val process = launchRes.getOrThrow()
+                activeGameProcess = process
                 _appState.value = AppState.RUNNING
-                AppLogger.info("LauncherViewModel", "Game is running.")
+                AppLogger.info("LauncherViewModel", "Game is running (PID: ${process.pid()}).")
             } catch (e: Exception) {
+                activeGameProcess = null
                 AppLogger.error("LauncherViewModel", "Launch failed: ${e.message}", e)
                 if (e is LauncherError) showError(e) else showError(LauncherError.MinecraftLaunchFailed(null, e.message, e))
                 _appState.value = AppState.READY
+            }
+        }
+    }
+
+    fun stopGame() {
+        val process = activeGameProcess
+        if (process != null && process.isAlive) {
+            AppLogger.info("LauncherViewModel", "Terminating running Minecraft process (PID: ${process.pid()})...")
+            try {
+                process.destroy()
+                scope.launch(Dispatchers.IO) {
+                    delay(1500)
+                    if (process.isAlive) {
+                        AppLogger.warn("LauncherViewModel", "Process did not exit cleanly, forcing kill...")
+                        process.destroyForcibly()
+                    }
+                }
+            } catch (e: Exception) {
+                AppLogger.warn("LauncherViewModel", "Failed to stop game process: ${e.message}")
             }
         }
     }

@@ -58,7 +58,8 @@ fun App(viewModel: LauncherViewModel = remember { LauncherViewModel() }) {
                 onRefreshNews = { viewModel.refreshNews() },
                 onOpenSettings = { viewModel.openSettings() },
                 onLogout = { viewModel.logout() },
-                onClearLogs = { viewModel.clearLogs() }
+                onClearLogs = { viewModel.clearLogs() },
+                onCloseGame = { viewModel.stopGame() }
             )
         }
 

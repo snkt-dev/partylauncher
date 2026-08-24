@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.NetworkCheck
@@ -91,7 +92,8 @@ fun MainScreen(
     onRefreshNews: () -> Unit,
     onOpenSettings: () -> Unit,
     onLogout: () -> Unit,
-    onClearLogs: () -> Unit
+    onClearLogs: () -> Unit,
+    onCloseGame: () -> Unit = {}
 ) {
     val needsUpdate = remoteManifest != null && (installedConfig == null || installedConfig.buildVersion != remoteManifest.version)
     val isBusy = appState == AppState.DOWNLOADING_BUILD ||
@@ -112,9 +114,9 @@ fun MainScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Launcher Title
+            // Left side: Logo & Title
             Row(verticalAlignment = Alignment.CenterVertically) {
-                AppLogo(size = 40.dp, cornerRadius = 10.dp)
+                AppLogo(size = 44.dp)
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
@@ -180,7 +182,7 @@ fun MainScreen(
 
                 IconButton(
                     onClick = onCheckUpdates,
-                    enabled = !isBusy,
+                    enabled = !isBusy && appState != AppState.RUNNING,
                     modifier = Modifier
                         .size(44.dp)
                         .clip(RoundedCornerShape(12.dp))
@@ -261,38 +263,29 @@ fun MainScreen(
                     Spacer(modifier = Modifier.height(12.dp))
                 }
 
-                // Action Button
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Button(
-                        onClick = onPlayOrUpdate,
-                        enabled = !isBusy && appState != AppState.RUNNING,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (needsUpdate) AccentCyan else PrimaryGreen,
-                            disabledContainerColor = SurfaceCard
-                        )
+                // Action Button Area
+                if (appState == AppState.RUNNING) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        if (isBusy) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(22.dp),
-                                strokeWidth = 2.5.dp,
-                                color = TextPrimary
+                        Button(
+                            onClick = {},
+                            enabled = false,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(52.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                disabledContainerColor = SurfaceCard
                             )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = appState.description,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = TextPrimary
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.SportsEsports,
+                                contentDescription = null,
+                                tint = PrimaryGreen,
+                                modifier = Modifier.size(24.dp)
                             )
-                        } else if (appState == AppState.RUNNING) {
-                            Icon(Icons.Default.SportsEsports, contentDescription = null, tint = PrimaryGreen)
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
                                 text = "Игра запущена",
@@ -300,24 +293,75 @@ fun MainScreen(
                                 fontWeight = FontWeight.Bold,
                                 color = TextPrimary
                             )
-                        } else if (needsUpdate) {
-                            Icon(Icons.Default.Download, contentDescription = null, tint = BackgroundDark)
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                text = "ОБНОВИТЬ И ИГРАТЬ",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = BackgroundDark
+                        }
+
+                        Spacer(modifier = Modifier.width(10.dp))
+
+                        IconButton(
+                            onClick = onCloseGame,
+                            modifier = Modifier
+                                .size(52.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(StatusError.copy(alpha = 0.15f))
+                                .border(1.dp, StatusError.copy(alpha = 0.6f), RoundedCornerShape(14.dp))
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Закрыть игру",
+                                tint = StatusError,
+                                modifier = Modifier.size(24.dp)
                             )
-                        } else {
-                            Icon(Icons.Default.PlayArrow, contentDescription = null, tint = BackgroundDark, modifier = Modifier.size(26.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "ИГРАТЬ",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = BackgroundDark
+                        }
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Button(
+                            onClick = onPlayOrUpdate,
+                            enabled = !isBusy,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (needsUpdate) AccentCyan else PrimaryGreen,
+                                disabledContainerColor = SurfaceCard
                             )
+                        ) {
+                            if (isBusy) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(22.dp),
+                                    strokeWidth = 2.5.dp,
+                                    color = TextPrimary
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = appState.description,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextPrimary
+                                )
+                            } else if (needsUpdate) {
+                                Icon(Icons.Default.Download, contentDescription = null, tint = BackgroundDark)
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = "ОБНОВИТЬ И ИГРАТЬ",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = BackgroundDark
+                                )
+                            } else {
+                                Icon(Icons.Default.PlayArrow, contentDescription = null, tint = BackgroundDark, modifier = Modifier.size(26.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "ИГРАТЬ",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = BackgroundDark
+                                )
+                            }
                         }
                     }
                 }
@@ -449,7 +493,7 @@ private fun ServerStatusCard(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = if (isOnline && pingMs >= 0) "$pingMs ms" else "—",
+                    text = if (isOnline) "${pingMs}ms" else "—",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = pingColor
@@ -466,40 +510,50 @@ private fun StatusBanner(
     remoteVersion: String?,
     installedVersion: String?
 ) {
-    val (statusColor, statusText, statusIcon) = when {
-        appState == AppState.RUNNING -> Triple(StatusSuccess, "Minecraft запущен и работает", Icons.Default.SportsEsports)
-        appState == AppState.CHECKING_BUILD -> Triple(AccentCyan, "Проверка обновлений сборки...", Icons.Default.Refresh)
-        appState == AppState.DOWNLOADING_BUILD -> Triple(AccentCyan, "Скачивание файлов сборки...", Icons.Default.Download)
-        appState == AppState.VERIFYING_BUILD -> Triple(AccentCyan, "Проверка целостности SHA-256...", Icons.Default.CheckCircle)
-        appState == AppState.INSTALLING_BUILD -> Triple(AccentCyan, "Установка файлов сборки...", Icons.Default.SystemUpdate)
-        appState == AppState.DOWNLOADING_MINECRAFT -> Triple(AccentCyan, "Загрузка компонентов Minecraft...", Icons.Default.Download)
-        appState == AppState.LAUNCHING -> Triple(PrimaryGreen, "Запуск процесса Minecraft...", Icons.Default.PlayArrow)
-        needsUpdate -> Triple(StatusWarning, "Доступно обновление сборки (v$remoteVersion)", Icons.Default.SystemUpdate)
-        installedVersion != null -> Triple(StatusSuccess, "Установлена актуальная версия (v$installedVersion)", Icons.Default.CheckCircle)
-        else -> Triple(StatusWarning, "Сборка еще не установлена", Icons.Default.Download)
+    val (bgColor, borderColor, icon, text) = when {
+        appState == AppState.RUNNING -> Quadruple(
+            SurfaceCard,
+            PrimaryGreen.copy(alpha = 0.5f),
+            Icons.Default.SportsEsports,
+            "Minecraft запущен и активен. Приятной игры!"
+        )
+        needsUpdate -> Quadruple(
+            AccentCyan.copy(alpha = 0.12f),
+            AccentCyan.copy(alpha = 0.4f),
+            Icons.Default.SystemUpdate,
+            "Доступно обновление сборки: v${remoteVersion ?: "?"} (Установлена: v${installedVersion ?: "нет"})"
+        )
+        else -> Quadruple(
+            SurfaceCard,
+            BorderDark,
+            Icons.Default.CheckCircle,
+            "Сборка актуальна (v${installedVersion ?: "1.0.0"}). Готово к запуску!"
+        )
     }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(statusColor.copy(alpha = 0.12f))
-            .border(1.dp, statusColor.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .clip(RoundedCornerShape(12.dp))
+            .background(bgColor)
+            .border(1.dp, borderColor, RoundedCornerShape(12.dp))
+            .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(8.dp)
-                .clip(CircleShape)
-                .background(statusColor)
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = if (needsUpdate) AccentCyan else PrimaryGreen,
+            modifier = Modifier.size(18.dp)
         )
         Spacer(modifier = Modifier.width(10.dp))
         Text(
-            text = statusText,
+            text = text,
             style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
-            color = TextPrimary
+            color = TextPrimary,
+            fontSize = 13.sp
         )
     }
 }
+
+private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
