@@ -34,7 +34,7 @@ fun main() = application {
         AppLogger.warn("Main", "Could not set Taskbar icon: ${e.message}")
     }
 
-    val windowState = WindowState(size = DpSize(1000.dp, 700.dp))
+    val windowState = WindowState(size = DpSize(1180.dp, 740.dp))
     val appPainter = iconImage?.let { BitmapPainter(it.toComposeImageBitmap()) }
 
     Window(
@@ -43,7 +43,7 @@ fun main() = application {
         title = "BeachParty Launcher",
         icon = appPainter
     ) {
-        window.minimumSize = Dimension(880, 620)
+        window.minimumSize = Dimension(980, 640)
         App()
     }
 }

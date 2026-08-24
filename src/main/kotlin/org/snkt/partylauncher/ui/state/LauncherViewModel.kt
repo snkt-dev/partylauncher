@@ -35,6 +35,8 @@ import org.snkt.partylauncher.minecraft.PlaytimeTracker
 import org.snkt.partylauncher.minecraft.ServerListManager
 import org.snkt.partylauncher.minecraft.ServerPinger
 import org.snkt.partylauncher.minecraft.ServerStatus
+import org.snkt.partylauncher.news.model.NewsItem
+import org.snkt.partylauncher.news.repository.FirestoreNewsService
 import java.awt.Desktop
 import java.net.URI
 
@@ -47,7 +49,8 @@ class LauncherViewModel(
     private val buildInstaller: BuildInstaller = BuildInstaller(),
     private val instanceManager: InstanceManager = InstanceManager(),
     private val minecraftDownloader: MinecraftDownloader = MinecraftDownloader(),
-    private val minecraftLauncher: MinecraftLauncher = MinecraftLauncher()
+    private val minecraftLauncher: MinecraftLauncher = MinecraftLauncher(),
+    private val firestoreNewsService: FirestoreNewsService = FirestoreNewsService()
 ) {
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -90,8 +93,15 @@ class LauncherViewModel(
     private val _formattedPlaytime = MutableStateFlow("< 1 мин")
     val formattedPlaytime: StateFlow<String> = _formattedPlaytime.asStateFlow()
 
+    private val _newsList = MutableStateFlow<List<NewsItem>>(emptyList())
+    val newsList: StateFlow<List<NewsItem>> = _newsList.asStateFlow()
+
+    private val _isNewsLoading = MutableStateFlow(false)
+    val isNewsLoading: StateFlow<Boolean> = _isNewsLoading.asStateFlow()
+
     private var activeJob: Job? = null
     private var serverPingJob: Job? = null
+    private var newsJob: Job? = null
 
     init {
         // Collect logs into state for UI
@@ -102,6 +112,7 @@ class LauncherViewModel(
         }
 
         startServerPingerLoop()
+        refreshNews()
         initializeLauncher()
     }
 
@@ -125,6 +136,25 @@ class LauncherViewModel(
         }
     }
 
+    fun refreshNews() {
+        newsJob?.cancel()
+        newsJob = scope.launch {
+            _isNewsLoading.value = true
+            val cfg = _config.value
+            val result = firestoreNewsService.fetchNews(
+                projectId = cfg.firestoreProjectId,
+                collection = cfg.firestoreNewsCollection,
+                customUrl = cfg.customNewsUrl
+            )
+            if (result.isSuccess) {
+                _newsList.value = result.getOrDefault(emptyList())
+            } else {
+                AppLogger.warn("LauncherViewModel", "Could not fetch news: ${result.exceptionOrNull()?.message}")
+            }
+            _isNewsLoading.value = false
+        }
+    }
+
     private fun updateFormattedPlaytime() {
         val currentUuid = _session.value?.uuid
         if (!currentUuid.isNullOrBlank()) {
@@ -144,6 +174,12 @@ class LauncherViewModel(
 
             val savedSession = accountStorage.loadAccount()
             if (savedSession != null) {
+                if (savedSession.isOffline) {
+                    _session.value = savedSession
+                    onUserAuthenticated(savedSession)
+                    return@launch
+                }
+
                 if (savedSession.isExpired()) {
                     AppLogger.info("LauncherViewModel", "Saved session expired. Attempting token refresh...")
                     val refreshed = if (!savedSession.authManagerJson.isNullOrBlank()) {
@@ -441,12 +477,20 @@ class LauncherViewModel(
 
     fun saveSettings(newConfig: LauncherConfig) {
         val serverAddrChanged = _config.value.serverAddress != newConfig.serverAddress
+        val newsConfigChanged = _config.value.firestoreProjectId != newConfig.firestoreProjectId ||
+                _config.value.firestoreNewsCollection != newConfig.firestoreNewsCollection ||
+                _config.value.customNewsUrl != newConfig.customNewsUrl
+
         _config.value = newConfig
         configStorage.saveConfig(newConfig)
         _isSettingsOpen.value = false
         AppLogger.info("LauncherViewModel", "Updated configuration applied.")
+
         if (serverAddrChanged) {
             refreshServerStatus()
+        }
+        if (newsConfigChanged) {
+            refreshNews()
         }
     }
 

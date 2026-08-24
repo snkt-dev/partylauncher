@@ -1,7 +1,9 @@
 package org.snkt.partylauncher.ui.components
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -75,11 +77,13 @@ fun LogViewer(
             .clip(RoundedCornerShape(12.dp))
             .background(SurfaceCard)
             .border(1.dp, BorderDark, RoundedCornerShape(12.dp))
+            .animateContentSize()
     ) {
         // Header
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .clickable { isExpanded = !isExpanded }
                 .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween

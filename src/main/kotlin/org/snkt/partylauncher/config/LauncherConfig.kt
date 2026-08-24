@@ -16,5 +16,8 @@ data class LauncherConfig(
     val windowHeight: Int = 768,
     val autoCheckUpdates: Boolean = true,
     val closeOnLaunch: Boolean = false,
-    val playtimeSecondsByUuid: Map<String, Long> = emptyMap()
+    val playtimeSecondsByUuid: Map<String, Long> = emptyMap(),
+    val firestoreProjectId: String = "beachparty-mc",
+    val firestoreNewsCollection: String = "news",
+    val customNewsUrl: String? = null
 )

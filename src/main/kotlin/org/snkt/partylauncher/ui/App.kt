@@ -27,6 +27,8 @@ fun App(viewModel: LauncherViewModel = remember { LauncherViewModel() }) {
     val logs by viewModel.logs.collectAsState()
     val serverStatus by viewModel.serverStatus.collectAsState()
     val formattedPlaytime by viewModel.formattedPlaytime.collectAsState()
+    val newsList by viewModel.newsList.collectAsState()
+    val isNewsLoading by viewModel.isNewsLoading.collectAsState()
 
     LauncherTheme {
         if (session == null || appState == AppState.REQUIRES_LOGIN || appState == AppState.DEVICE_CODE_WAITING) {
@@ -49,8 +51,11 @@ fun App(viewModel: LauncherViewModel = remember { LauncherViewModel() }) {
                 logs = logs,
                 serverStatus = serverStatus,
                 playtime = formattedPlaytime,
+                newsList = newsList,
+                isNewsLoading = isNewsLoading,
                 onPlayOrUpdate = { viewModel.playOrUpdate() },
                 onCheckUpdates = { viewModel.checkUpdates() },
+                onRefreshNews = { viewModel.refreshNews() },
                 onOpenSettings = { viewModel.openSettings() },
                 onLogout = { viewModel.logout() },
                 onClearLogs = { viewModel.clearLogs() }
