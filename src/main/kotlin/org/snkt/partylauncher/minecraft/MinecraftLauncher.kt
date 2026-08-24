@@ -13,6 +13,7 @@ import org.snkt.partylauncher.util.OSType
 import org.snkt.partylauncher.util.OSUtils
 import org.snkt.partylauncher.util.ProcessUtils
 import java.io.File
+import java.nio.file.Files
 import java.nio.file.Path
 
 class MinecraftLauncher(
@@ -45,7 +46,18 @@ class MinecraftLauncher(
         command.add("-XX:MaxGCPauseMillis=50")
         command.add("-XX:G1HeapRegionSize=32M")
 
-        // 3. System Properties & Launcher Branding
+        // 3. Extra JVM Arguments (NeoForge / Forge: module path, exports, opens, properties)
+        val libraryDirStr = OSUtils.getLibrariesDir().toAbsolutePath().normalize().toString()
+        val classpathSep = File.pathSeparator
+        for (arg in installation.extraJvmArgs) {
+            val resolvedArg = arg
+                .replace("\${library_directory}", libraryDirStr)
+                .replace("\${classpath_separator}", classpathSep)
+                .replace("\${version_name}", installation.minecraftVersion)
+            command.add(resolvedArg)
+        }
+
+        // 4. System Properties & Launcher Branding
         command.add("-Dminecraft.launcher.brand=PartyLauncher")
         command.add("-Dminecraft.launcher.version=1.0.0")
 
@@ -54,10 +66,12 @@ class MinecraftLauncher(
             command.add("-Dapple.awt.application.name=Minecraft")
         }
 
-        // 4. Classpath
+        // 5. Classpath
         val classpathEntries = mutableListOf<String>()
         installation.libraryJars.forEach {
-            classpathEntries.add(it.toAbsolutePath().toString())
+            if (Files.exists(it)) {
+                classpathEntries.add(it.toAbsolutePath().toString())
+            }
         }
         classpathEntries.add(installation.clientJar.toAbsolutePath().toString())
 
@@ -65,10 +79,15 @@ class MinecraftLauncher(
         command.add("-cp")
         command.add(classpathString)
 
-        // 5. Main Class
+        // 6. Main Class
         command.add(installation.mainClass)
 
-        // 6. Game Arguments
+        // 7. Extra Game Arguments (NeoForge / Forge: --fml.neoForgeVersion, --launchTarget, etc.)
+        for (arg in installation.extraGameArgs) {
+            command.add(arg)
+        }
+
+        // 8. Standard Game Arguments
         command.add("--username")
         command.add(session.username)
 

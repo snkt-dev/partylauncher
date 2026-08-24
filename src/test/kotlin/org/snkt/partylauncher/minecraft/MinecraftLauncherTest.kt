@@ -84,6 +84,59 @@ class MinecraftLauncherTest {
     }
 
     @Test
+    fun testNeoForgeLaunchCommandWithJvmAndGameArgs(@TempDir tempDir: Path) {
+        val launcher = MinecraftLauncher()
+        val javaExec = Paths.get("/usr/bin/java")
+        val clientJar = tempDir.resolve("1.21.1.jar")
+
+        val installation = MinecraftInstallationResult(
+            minecraftVersion = "1.21.1",
+            clientJar = clientJar,
+            libraryJars = emptyList(),
+            mainClass = "cpw.mods.bootstraplauncher.BootstrapLauncher",
+            assetIndexId = "1.21.1",
+            versionDetails = MojangVersionDetails(id = "1.21.1"),
+            extraJvmArgs = listOf(
+                "-DlibraryDirectory=\${library_directory}",
+                "-p",
+                "\${library_directory}/bootstraplauncher.jar\${classpath_separator}\${library_directory}/securejar.jar",
+                "--add-modules",
+                "ALL-MODULE-PATH"
+            ),
+            extraGameArgs = listOf(
+                "--fml.neoForgeVersion",
+                "21.1.248",
+                "--launchTarget",
+                "forgeclient"
+            )
+        )
+
+        val session = MinecraftSession(
+            username = "Steve",
+            uuid = "11111111-2222-3333-4444-555555555555",
+            minecraftAccessToken = "dummy_token",
+            expiresAtEpochMs = System.currentTimeMillis() + 3600000L
+        )
+
+        val config = LauncherConfig(minMemoryMb = 4096, maxMemoryMb = 8192)
+        val command = launcher.buildLaunchCommand(javaExec, installation, session, tempDir, config)
+
+        // Check main class is NeoForge BootstrapLauncher
+        assertTrue(command.contains("cpw.mods.bootstraplauncher.BootstrapLauncher"))
+
+        // Check NeoForge extra JVM args
+        assertTrue(command.contains("--add-modules"))
+        assertTrue(command.contains("ALL-MODULE-PATH"))
+        assertTrue(command.any { it.startsWith("-DlibraryDirectory=") })
+
+        // Check NeoForge extra Game args
+        assertTrue(command.contains("--fml.neoForgeVersion"))
+        assertTrue(command.contains("21.1.248"))
+        assertTrue(command.contains("--launchTarget"))
+        assertTrue(command.contains("forgeclient"))
+    }
+
+    @Test
     fun testSensitiveDataMaskingInLogs() {
         val rawCommand = "--username Alex --accessToken eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.doNotLeakThis --xuid 2535400000000000"
         val masked = AppLogger.maskSensitiveData(rawCommand)

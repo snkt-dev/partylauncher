@@ -29,6 +29,8 @@ import org.snkt.partylauncher.instance.InstanceManager
 import org.snkt.partylauncher.logging.AppLogger
 import org.snkt.partylauncher.logging.LogBuffer
 import org.snkt.partylauncher.logging.LogEntry
+import org.snkt.partylauncher.minecraft.JavaRuntime
+import org.snkt.partylauncher.minecraft.JavaRuntimeProvider
 import org.snkt.partylauncher.minecraft.MinecraftDownloader
 import org.snkt.partylauncher.minecraft.MinecraftLauncher
 import org.snkt.partylauncher.minecraft.PlaytimeTracker
@@ -48,6 +50,7 @@ class LauncherViewModel(
     private val buildDownloader: BuildDownloader = BuildDownloader(),
     private val buildInstaller: BuildInstaller = BuildInstaller(),
     private val instanceManager: InstanceManager = InstanceManager(),
+    private val javaRuntimeProvider: JavaRuntimeProvider = JavaRuntime,
     private val minecraftDownloader: MinecraftDownloader = MinecraftDownloader(),
     private val minecraftLauncher: MinecraftLauncher = MinecraftLauncher(),
     private val firestoreNewsService: FirestoreNewsService = FirestoreNewsService()
@@ -393,10 +396,13 @@ class LauncherViewModel(
                 _appState.value = AppState.DOWNLOADING_MINECRAFT
                 _progress.value = ProgressInfo(title = "Подготовка Minecraft $mcVersion...")
 
+                val javaExecutable = javaRuntimeProvider.getRuntime(mcVersion, _config.value.customJavaPath)
+
                 val prepRes = minecraftDownloader.prepareMinecraft(
                     minecraftVersion = mcVersion,
                     loader = loader,
                     loaderVersion = loaderVersion,
+                    javaExecutable = javaExecutable,
                     onProgress = { _progress.value = it }
                 )
 

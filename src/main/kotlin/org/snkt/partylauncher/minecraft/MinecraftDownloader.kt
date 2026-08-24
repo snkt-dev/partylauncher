@@ -5,8 +5,8 @@ import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
-import io.ktor.client.request.header
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.request.prepareGet
 import io.ktor.client.statement.bodyAsBytes
 import io.ktor.client.statement.bodyAsChannel
@@ -60,7 +60,8 @@ class MinecraftDownloader(
             })
         }
     },
-    private val fabricClient: FabricMetaClient = FabricMetaClient(httpClient)
+    private val fabricClient: FabricMetaClient = FabricMetaClient(httpClient),
+    private val neoForgeService: NeoForgeService = NeoForgeService(httpClient)
 ) {
     private val json = Json {
         ignoreUnknownKeys = true
@@ -68,13 +69,14 @@ class MinecraftDownloader(
     }
 
     /**
-     * Installs or verifies all required Minecraft components (Version JSON, Client JAR, Libraries, Assets, Fabric).
+     * Installs or verifies all required Minecraft components (Version JSON, Client JAR, Libraries, Assets, Mod Loaders).
      * @return Resolved launch components data needed by MinecraftLauncher
      */
     suspend fun prepareMinecraft(
         minecraftVersion: String,
         loader: String = "fabric",
         loaderVersion: String = "",
+        javaExecutable: Path? = null,
         onProgress: (ProgressInfo) -> Unit = {}
     ): Result<MinecraftInstallationResult> = withContext(Dispatchers.IO) {
         try {
@@ -88,21 +90,29 @@ class MinecraftDownloader(
             onProgress(ProgressInfo(title = "Проверка и загрузка Minecraft client.jar...", currentItem = 2, totalItems = 5))
             val clientJar = downloadClientJar(versionDetails, onProgress)
 
-            // 3. Resolve and Download Fabric Profile (if requested)
-            val fabricProfile = if (loader.equals("fabric", ignoreCase = true) && loaderVersion.isNotBlank()) {
+            // 3. Resolve and Download Mod Loader Profile (Fabric or NeoForge)
+            val isFabric = loader.equals("fabric", ignoreCase = true) && loaderVersion.isNotBlank()
+            val isNeoForge = (loader.equals("neoforge", ignoreCase = true) || loader.equals("forge", ignoreCase = true)) && loaderVersion.isNotBlank()
+
+            val fabricProfile = if (isFabric) {
                 onProgress(ProgressInfo(title = "Получение метаданных Fabric Loader...", currentItem = 3, totalItems = 5))
                 fabricClient.fetchFabricProfile(minecraftVersion, loaderVersion).getOrThrow()
             } else null
 
-            // 4. Download Mojang & Fabric Libraries
+            val neoForgeProfile = if (isNeoForge) {
+                val javaExec = javaExecutable ?: JavaRuntime.getRuntime(minecraftVersion)
+                neoForgeService.prepareNeoForge(minecraftVersion, loaderVersion, javaExec, onProgress).getOrThrow()
+            } else null
+
+            // 4. Download Mojang & Mod Loader Libraries
             onProgress(ProgressInfo(title = "Проверка и загрузка библиотек...", currentItem = 4, totalItems = 5))
-            val libraryJars = downloadLibraries(versionDetails, fabricProfile, onProgress)
+            val libraryJars = downloadLibraries(versionDetails, fabricProfile, neoForgeProfile, onProgress)
 
             // 5. Download Assets (indexes & objects)
             onProgress(ProgressInfo(title = "Проверка и загрузка ресурсов (assets)...", currentItem = 5, totalItems = 5))
             val assetIndexId = downloadAssets(versionDetails, onProgress)
 
-            val mainClass = fabricProfile?.mainClass ?: versionDetails.mainClass
+            val mainClass = neoForgeProfile?.mainClass ?: fabricProfile?.mainClass ?: versionDetails.mainClass
             AppLogger.info("MinecraftDownloader", "Minecraft preparation complete! Main class: $mainClass, Total libs: ${libraryJars.size}")
 
             Result.success(
@@ -112,7 +122,9 @@ class MinecraftDownloader(
                     libraryJars = libraryJars,
                     mainClass = mainClass,
                     assetIndexId = assetIndexId,
-                    versionDetails = versionDetails
+                    versionDetails = versionDetails,
+                    extraJvmArgs = neoForgeProfile?.jvmArgs ?: emptyList(),
+                    extraGameArgs = neoForgeProfile?.gameArgs ?: emptyList()
                 )
             )
         } catch (e: Exception) {
@@ -256,6 +268,7 @@ class MinecraftDownloader(
     private suspend fun downloadLibraries(
         versionDetails: MojangVersionDetails,
         fabricProfile: FabricProfile?,
+        neoForgeProfile: NeoForgeProfile?,
         onProgress: (ProgressInfo) -> Unit
     ): List<Path> = coroutineScope {
         val librariesDir = OSUtils.getLibrariesDir()
@@ -293,6 +306,25 @@ class MinecraftDownloader(
             if (!isLibraryValid(localPath, null)) {
                 downloadTasks.add {
                     downloadFileWithRetry(downloadUrl, localPath, null)
+                }
+            }
+        }
+
+        // 3. NeoForge Libraries
+        neoForgeProfile?.libraries?.forEach { lib ->
+            if (lib.isAllowedOnCurrentSystem()) {
+                val relPath = lib.getArtifactRelativePath()
+                val localPath = librariesDir.resolve(relPath).normalize()
+                resolvedPaths.add(localPath)
+
+                val artifact = lib.downloads?.artifact
+                val downloadUrl = artifact?.url ?: if (lib.url != null) "${lib.url.trimEnd('/')}/$relPath" else "https://maven.neoforged.net/releases/$relPath"
+                val expectedSha1 = artifact?.sha1
+
+                if (!isLibraryValid(localPath, expectedSha1)) {
+                    downloadTasks.add {
+                        downloadFileWithRetry(downloadUrl, localPath, expectedSha1)
+                    }
                 }
             }
         }
@@ -438,5 +470,7 @@ data class MinecraftInstallationResult(
     val libraryJars: List<Path>,
     val mainClass: String,
     val assetIndexId: String,
-    val versionDetails: MojangVersionDetails
+    val versionDetails: MojangVersionDetails,
+    val extraJvmArgs: List<String> = emptyList(),
+    val extraGameArgs: List<String> = emptyList()
 )
