@@ -1,5 +1,6 @@
 package org.snkt.partylauncher
 
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.unit.DpSize
@@ -10,6 +11,7 @@ import androidx.compose.ui.window.application
 import org.snkt.partylauncher.logging.AppLogger
 import org.snkt.partylauncher.ui.App
 import java.awt.Dimension
+import java.awt.Taskbar
 import javax.imageio.ImageIO
 
 fun main() = application {
@@ -33,8 +35,19 @@ fun main() = application {
         null
     }
 
+    // Set macOS Dock / OS taskbar icon with full resolution
+    if (iconImage != null) {
+        try {
+            if (Taskbar.isTaskbarSupported() && Taskbar.getTaskbar().isSupported(Taskbar.Feature.ICON_IMAGE)) {
+                Taskbar.getTaskbar().iconImage = iconImage
+            }
+        } catch (e: Exception) {
+            // Ignore on platforms without taskbar support
+        }
+    }
+
     val windowState = WindowState(size = DpSize(1180.dp, 740.dp))
-    val appPainter = iconImage?.let { BitmapPainter(it.toComposeImageBitmap()) }
+    val appPainter = iconImage?.let { BitmapPainter(it.toComposeImageBitmap(), filterQuality = FilterQuality.High) }
 
     Window(
         onCloseRequest = ::exitApplication,

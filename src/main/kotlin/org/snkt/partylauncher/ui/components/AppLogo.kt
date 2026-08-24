@@ -43,7 +43,7 @@ fun AppLogo(
     ) {
         if (bitmap != null) {
             Image(
-                painter = BitmapPainter(bitmap),
+                painter = BitmapPainter(bitmap, filterQuality = androidx.compose.ui.graphics.FilterQuality.High),
                 contentDescription = "PartyLauncher Logo",
                 modifier = Modifier
                     .size(size)
