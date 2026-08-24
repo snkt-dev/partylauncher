@@ -131,15 +131,17 @@ fun MainScreen(
                 }
             }
 
-            // Right side: User Badge & Settings
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // Right side: User Badge & Action Buttons
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 UserProfileBadge(
                     session = session,
                     playtime = playtime,
-                    onLogout = onLogout
+                    onLogout = onLogout,
+                    modifier = Modifier.height(44.dp)
                 )
-
-                Spacer(modifier = Modifier.width(10.dp))
 
                 // Golden "Поддержать" button
                 Button(
@@ -176,8 +178,6 @@ fun MainScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.width(10.dp))
-
                 IconButton(
                     onClick = onCheckUpdates,
                     enabled = !isBusy,
@@ -194,8 +194,6 @@ fun MainScreen(
                         modifier = Modifier.size(20.dp)
                     )
                 }
-
-                Spacer(modifier = Modifier.width(8.dp))
 
                 IconButton(
                     onClick = onOpenSettings,

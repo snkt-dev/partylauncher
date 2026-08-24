@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -44,16 +45,17 @@ fun UserProfileBadge(
 ) {
     Row(
         modifier = modifier
+            .height(44.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(SurfaceCard)
             .border(1.dp, BorderDark, RoundedCornerShape(12.dp))
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Player Avatar / Placeholder
         Box(
             modifier = Modifier
-                .size(36.dp)
+                .size(30.dp)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.primaryContainer),
             contentAlignment = Alignment.Center
@@ -62,11 +64,11 @@ fun UserProfileBadge(
                 imageVector = Icons.Default.Person,
                 contentDescription = "Avatar",
                 tint = PrimaryGreen,
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(18.dp)
             )
         }
 
-        Spacer(modifier = Modifier.width(10.dp))
+        Spacer(modifier = Modifier.width(8.dp))
 
         Column(
             modifier = Modifier.weight(1f, fill = false),
@@ -76,36 +78,39 @@ fun UserProfileBadge(
                 text = session.username,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary
+                color = TextPrimary,
+                fontSize = 13.sp,
+                lineHeight = 16.sp
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.Schedule,
                     contentDescription = null,
                     tint = TextMuted,
-                    modifier = Modifier.size(11.dp)
+                    modifier = Modifier.size(10.dp)
                 )
                 Spacer(modifier = Modifier.width(3.dp))
                 Text(
                     text = playtime,
                     style = MaterialTheme.typography.bodySmall,
                     color = TextMuted,
-                    fontSize = 11.sp
+                    fontSize = 11.sp,
+                    lineHeight = 13.sp
                 )
             }
         }
 
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(6.dp))
 
         IconButton(
             onClick = onLogout,
-            modifier = Modifier.size(32.dp)
+            modifier = Modifier.size(28.dp)
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.Logout,
                 contentDescription = "Выйти из аккаунта",
                 tint = TextSecondary,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(16.dp)
             )
         }
     }
